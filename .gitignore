@@ -1,0 +1,6 @@
+.metadata/
+Debug/
+RemoteSystemsTempFiles/
+.vs
+.vscode
+build
