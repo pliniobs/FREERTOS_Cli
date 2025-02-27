@@ -5,34 +5,34 @@
 #include "stm32l4xx_hal.h"
 
 UART_HandleTypeDef Cli_USART_Handler;
-
-Cli_USART_Data_t Cli_Usart_Data = {
-    .rx_counter = 0,
-    .tx_counter = 0,
-};
+uint8_t Input_Char;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  BaseType_t xHigherPriorityTaskWoken;
-  xHigherPriorityTaskWoken = pdFALSE;
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-  if (huart->Instance == USART2) {
-    if (Cli_Usart_Data.rx_counter >= RX_TX_BUFFER_SIZE)  // Check the buffer overflow
-      Cli_Usart_Data.rx_counter = 0;
+  if (huart->Instance == LPUART1) {
+    xTaskNotifyFromISR(xTask_Cli_Handler, Input_Char, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    HAL_UART_Receive_IT(&Cli_USART_Handler, &Input_Char, 1);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
-    if ((Cli_Usart_Data.Input_char == '\r' || Cli_Usart_Data.Input_char == '\n') && (Cli_Usart_Data.rx_counter > 0)) {
-      Cli_Usart_Data.rx_buffer[Cli_Usart_Data.rx_counter] = 0;  // Place null terminator character
-      // Inform the task the new incoming command.
-      vTaskNotifyGiveFromISR(xTask_Cli_Handler,        /* The handle of the task to which the notification is being sent. The handle was saved when the task was created. */
-                             &xHigherPriorityTaskWoken /* xHigherPriorityTaskWoken is used in the usual way. */
-      );
-      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    } else {
-      /*
-       * Append data to the buffer and increment the counter
-       */
-      Cli_Usart_Data.rx_buffer[Cli_Usart_Data.rx_counter++] = Cli_Usart_Data.Input_char;  // Insert the char in the input buffer
-      HAL_UART_Receive_IT(&Cli_USART_Handler, &Cli_Usart_Data.Input_char, 1);             // Prepare the UART to receive the next character
-    }
+    //    if (Cli_Usart_Data.rx_counter >= RX_TX_BUFFER_SIZE)  // Check the buffer overflow
+    //      Cli_Usart_Data.rx_counter = 0;
+    //
+    //    if ((Cli_Usart_Data.Input_char == '\r' || Cli_Usart_Data.Input_char == '\n') && (Cli_Usart_Data.rx_counter > 0)) {
+    //      Cli_Usart_Data.rx_buffer[Cli_Usart_Data.rx_counter] = 0;  // Place null terminator character
+    //      // Inform the task the new incoming command.
+    //      xHigherPriorityTaskWoken = Cli_Usart_Data.Input_char;
+    //      vTaskNotifyGiveFromISR(xTask_Cli_Handler,        /* The handle of the task to which the notification is being sent. The handle was saved when the task was created. */
+    //                             &xHigherPriorityTaskWoken /* xHigherPriorityTaskWoken is used in the usual way. */
+    //      );
+    //      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    //    } else {
+    //      /*
+    //       * Append data to the buffer and increment the counter
+    //       */
+    //      Cli_Usart_Data.rx_buffer[Cli_Usart_Data.rx_counter++] = Cli_Usart_Data.Input_char;  // Insert the char in the input buffer
+    //      HAL_UART_Receive_IT(&Cli_USART_Handler, &Cli_Usart_Data.Input_char, 1);             // Prepare the UART to receive the next character
+    //    }
   }
 }
 
@@ -93,7 +93,7 @@ void Cli_Uart_Init(void) {
     Error_Handler();
   }
 
-  HAL_UART_Receive_IT(&Cli_USART_Handler, &Cli_Usart_Data.Input_char, 1);  // Prepare the UART to receive the character
+  HAL_UART_Receive_IT(&Cli_USART_Handler, &Input_Char, 1);  // Prepare the UART to receive the character
 }
 
 void Cli_Uart_Deinit(void) {

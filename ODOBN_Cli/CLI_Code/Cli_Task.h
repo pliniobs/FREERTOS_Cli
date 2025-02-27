@@ -15,6 +15,8 @@
 #include "stm32l4xx_hal.h"
 #include "task.h"
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 extern TaskHandle_t xTask_Cli_Handler;
 
 void Init_Cli_Task(void);
